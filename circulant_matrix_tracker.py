@@ -59,7 +59,7 @@ def apply_cos_window(channels):
     if cos_window is None:
         cos_window = pylab.outer(pylab.hanning(channels.shape[1]), pylab.hanning(channels.shape[2]))
 
-    return pylab.multiply(channels[:], cos_window) - 0.5
+    return pylab.multiply(channels[:] - 0.5, cos_window)
 
 
 def dense_gauss_kernel(sigma, x, y=None):
@@ -97,10 +97,9 @@ def track(descriptor):
     roi = loader.track_bounding_box_from_first_frame()
     roi = [roi[0] + roi[2] / 2, roi[1] + roi[3] / 2, roi[2], roi[3], roi[2] * (1 + kcf_params.padding), roi[3] * (1 + kcf_params.padding)]
 
-    output_sigma = pylab.sqrt(pylab.prod(roi[2:3])) * kcf_params.output_sigma_factor
+    output_sigma = pylab.sqrt(pylab.prod([roi[3], roi[2]])) * kcf_params.output_sigma_factor
 
     avg_count = 0
-
 
 
     global cos_window
@@ -114,19 +113,17 @@ def track(descriptor):
 
     while loader.has_next_frame():
         if (frame_number % 10) == 0:
-            print("Processing frame", frame_number)
+            print("Processing frame {}".format(frame_number))
 
         im = loader.next_frame()
 
-        cropped = get_subwindow(im, roi)
-        channels = descriptor.describe(cropped)
-
         is_first_frame = frame_number == 0
 
+        cropped = get_subwindow(im, roi)
+        channels = descriptor.describe(cropped)
         subwindow = apply_cos_window(channels)
 
         if is_first_frame:
-            # TODO check x/y
             grid_y = pylab.arange(subwindow.shape[1]) - pylab.floor(subwindow.shape[1] / 2)
             grid_x = pylab.arange(subwindow.shape[2]) - pylab.floor(subwindow.shape[2] / 2)
 
@@ -159,9 +156,9 @@ def track(descriptor):
                 roi[0] = movedBy[0] + roi[0]
                 roi[1] = movedBy[1] + roi[1]
 
-        #cropped = get_subwindow(im, roi)
-        #channels = descriptor.describe(cropped)
-        #subwindow = apply_cos_window(channels)
+        # cropped = get_subwindow(im, roi)
+        # channels = descriptor.describe(cropped)
+        # subwindow = apply_cos_window(channels)
 
         for i in range(0, subwindow.shape[0]):
 
@@ -173,7 +170,7 @@ def track(descriptor):
 
             if is_first_frame:
                 alpha_f[i] = new_alpha_f
-                template[i] = channel
+                template[i] = new_template
             else:
                 f = kcf_params.interpolation_factor
                 alpha_f[i] = (1 - f) * alpha_f[i] + f * new_alpha_f
