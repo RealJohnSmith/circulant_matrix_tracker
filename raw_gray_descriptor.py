@@ -1,7 +1,7 @@
 import pylab
 
 
-def initialize():
+def initialize(usegpu):
     return 1
 
 

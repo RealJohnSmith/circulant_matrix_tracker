@@ -7,7 +7,9 @@ from optparse import OptionParser
 import results
 import pylab
 import loader
+
 import raw_gray_descriptor
+import hardnet_descriptor
 
 
 
@@ -92,7 +94,8 @@ def dense_gauss_kernel(sigma, x, y=None):
 
 
 def track(descriptor):
-    desc_channel_count = descriptor.initialize()
+    global options
+    desc_channel_count = descriptor.initialize(options.use_gpu)
 
     roi = loader.track_bounding_box_from_first_frame()
     roi = [roi[0] + roi[2] / 2, roi[1] + roi[3] / 2, roi[2], roi[3], roi[2] * (1 + kcf_params.padding), roi[3] * (1 + kcf_params.padding)]
@@ -151,14 +154,15 @@ def track(descriptor):
                     avg_count += 1
 
             if avg_count > 0:
-                movedBy = [avg_y / avg_count - roi[4] / 2,
-                           avg_x / avg_count - roi[5] / 2]
-                roi[0] = movedBy[0] + roi[0]
-                roi[1] = movedBy[1] + roi[1]
+                movedBy = [avg_y / avg_count - channel.shape[1] / 2,
+                           avg_x / avg_count - channel.shape[0] / 2]
+                roi[0] = movedBy[0] * roi[4] / channel.shape[1] + roi[0]
+                roi[1] = movedBy[1] * roi[5] / channel.shape[0] + roi[1]
 
-        # cropped = get_subwindow(im, roi)
-        # channels = descriptor.describe(cropped)
-        # subwindow = apply_cos_window(channels)
+
+        cropped = get_subwindow(im, roi)
+        channels = descriptor.describe(cropped)
+        subwindow = apply_cos_window(channels)
 
         for i in range(0, subwindow.shape[0]):
 
@@ -176,7 +180,7 @@ def track(descriptor):
                 alpha_f[i] = (1 - f) * alpha_f[i] + f * new_alpha_f
                 template[i] = (1 - f) * template[i] + f * new_template
 
-        results.log_tracked(im, roi, avg_count == 0, template[0], response[0])
+        results.log_tracked(im, roi, avg_count == 0, template[5], response[5])
         frame_number += 1
     # end of "for each image in video"
 
@@ -216,7 +220,8 @@ def main():
         if not loader.load_vot(options.input_path):
             raise Exception("Failed to load the dataset")
 
-    track(raw_gray_descriptor)
+    track(hardnet_descriptor)
+    # track(raw_gray_descriptor)
 
     print("Done.")
     return

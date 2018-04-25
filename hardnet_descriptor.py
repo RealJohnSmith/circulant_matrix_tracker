@@ -1,12 +1,20 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
+import pylab
 
 
-
-def initialize():
-    stride = 2
+class hardnet:
+    usegpu = False
+    model = None
     upscale = False
+
+def initialize(usegpu):
+    hardnet.usegpu = usegpu
+
+    stride = 2
+    hardnet.upscale = False
 
     model_weights = '../hardnet/pretrained/pretrained_all_datasets/HardNet++.pth'
     model = DenseHardNet(stride)
@@ -14,18 +22,29 @@ def initialize():
     model.load_state_dict(checkpoint['state_dict'])
     model.eval()
     if usegpu:
-        model = model.cuda()
+        hardnet.model = model.cuda()
     else:
-        model = model.cpu()
+        hardnet.model = model.cpu()
 
     return 128
 
 
+def rgb2gray(rgb_image):
+    "Based on http://stackoverflow.com/questions/12201577"
+    # [0.299, 0.587, 0.144] normalized gives [0.29, 0.57, 0.14]
+    return pylab.dot(rgb_image[:, :, :3], [0.29, 0.57, 0.14])
+
+
+
 def describe(image):
-    var_image = torch.autograd.Variable(torch.from_numpy(im.astype(np.float32)), volatile=True)
-    var_image_reshape = var_image.view(3, 1, var_image.size(0), var_image.size(1))
-    if (usegpu):
+    gray = rgb2gray(image)
+    var_image = torch.autograd.Variable(torch.from_numpy(gray.astype(np.float32)), volatile=True)
+    var_image_reshape = var_image.view(1, 1, gray.shape[0], gray.shape[1])
+    if (hardnet.usegpu):
         var_image_reshape = var_image_reshape.cuda()
+
+    desc = hardnet.model(var_image_reshape, hardnet.upscale).data.cpu().numpy()
+    return desc[0]
 
 
 
