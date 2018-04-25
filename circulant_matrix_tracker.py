@@ -36,10 +36,10 @@ class CirculantMatrixTracker:
 
 
 def get_subwindow(image, box):
-    xs = pylab.floor(box[0] + box[4]) \
-         + pylab.arange(box[2], dtype=int) - pylab.floor(box[2] / 2)
-    ys = pylab.floor(box[1] + box[5]) \
-         + pylab.arange(box[3], dtype=int) - pylab.floor(box[3] / 2)
+    xs = pylab.floor(box[0]) \
+         + pylab.arange(box[4], dtype=int) - pylab.floor(box[4] / 2)
+    ys = pylab.floor(box[1]) \
+         + pylab.arange(box[5], dtype=int) - pylab.floor(box[5] / 2)
 
     xs = xs.astype(int)
     ys = ys.astype(int)
@@ -94,13 +94,14 @@ def dense_gauss_kernel(sigma, x, y=None):
 def track(descriptor):
     desc_channel_count = descriptor.initialize()
 
-    box = loader.track_bounding_box_from_first_frame()
+    roi = loader.track_bounding_box_from_first_frame()
+    roi = [roi[0] + roi[2] / 2, roi[1] + roi[3] / 2, roi[2], roi[3], roi[2] * (1 + kcf_params.padding), roi[3] * (1 + kcf_params.padding)]
 
-    output_sigma = pylab.sqrt(pylab.prod(box[2:3])) * kcf_params.output_sigma_factor
-
-    box = [box[0], box[1], box[2] * (1 + kcf_params.padding), box[3] * (1 + kcf_params.padding), box[2] * (1 + kcf_params.padding) / 2 - box[2] / 2, box[3] * (1 + kcf_params.padding) / 2 - box[3] / 2]
+    output_sigma = pylab.sqrt(pylab.prod(roi[2:3])) * kcf_params.output_sigma_factor
 
     avg_count = 0
+
+
 
     global cos_window
     cos_window = None
@@ -117,7 +118,7 @@ def track(descriptor):
 
         im = loader.next_frame()
 
-        cropped = get_subwindow(im, box)
+        cropped = get_subwindow(im, roi)
         channels = descriptor.describe(cropped)
 
         is_first_frame = frame_number == 0
@@ -125,6 +126,7 @@ def track(descriptor):
         subwindow = apply_cos_window(channels)
 
         if is_first_frame:
+            # TODO check x/y
             grid_y = pylab.arange(subwindow.shape[1]) - pylab.floor(subwindow.shape[1] / 2)
             grid_x = pylab.arange(subwindow.shape[2]) - pylab.floor(subwindow.shape[2] / 2)
 
@@ -152,12 +154,12 @@ def track(descriptor):
                     avg_count += 1
 
             if avg_count > 0:
-                movedBy = [avg_y / avg_count - box[2] / 2,
-                           avg_x / avg_count - box[3] / 2]
-                box[0] = movedBy[0] + box[0]
-                box[1] = movedBy[1] + box[1]
+                movedBy = [avg_y / avg_count - roi[4] / 2,
+                           avg_x / avg_count - roi[5] / 2]
+                roi[0] = movedBy[0] + roi[0]
+                roi[1] = movedBy[1] + roi[1]
 
-        #cropped = get_subwindow(im, box)
+        #cropped = get_subwindow(im, roi)
         #channels = descriptor.describe(cropped)
         #subwindow = apply_cos_window(channels)
 
@@ -177,7 +179,7 @@ def track(descriptor):
                 alpha_f[i] = (1 - f) * alpha_f[i] + f * new_alpha_f
                 template[i] = (1 - f) * template[i] + f * new_template
 
-        results.log_tracked(im, box, avg_count == 0, template[0], response[0])
+        results.log_tracked(im, roi, avg_count == 0, template[0], response[0])
         frame_number += 1
     # end of "for each image in video"
 

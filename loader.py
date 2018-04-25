@@ -88,13 +88,13 @@ def load_bbabenko(video_path, rescale=None):
                                          "img%05i.png" % frames[0])
 
         if os.path.exists(test1_path_to_img):
-            video_path = os.path.join(video_path, "imgs/")
+            loader.img_paths = [video_path + "/imgs/img%05i.png" % i for i in range(frames[0], frames[1] + 1)]
         elif os.path.exists(test2_path_to_img):
-            video_path = video_path  # no need for change
+            loader.img_paths = [video_path + "/imgs/img%05i.png" % i for i in range(frames[0], frames[1] + 1)]
         else:
             return False
 
-        loader.img_paths = [video_path + "/img%05i.png" % i for i in range(frames[0], frames[1] + 1)]
+
 
     else:
         loader.img_paths = glob.glob(os.path.join(video_path, "*.png"))

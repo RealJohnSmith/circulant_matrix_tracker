@@ -21,7 +21,7 @@ class results:
     gt_rectangle = None
 
 
-def log_tracked(image, tracked_box, cached, template_f, response_f):
+def log_tracked(image, tracked_roi, cached, template_f, response_f):
     timeout = 1e-6
     tracking_figure_axes = results.tracking_figure_axes
     tracking_figure = results.tracking_figure
@@ -69,7 +69,7 @@ def log_tracked(image, tracked_box, cached, template_f, response_f):
 
     tracking_figure_axes.imshow(image)
 
-    tracking_rectangle.set_bounds(tracked_box[0] - tracked_box[4], tracked_box[1] - tracked_box[5], tracked_box[2], tracked_box[3])
+    tracking_rectangle.set_bounds(tracked_roi[0] - tracked_roi[2] / 2, tracked_roi[1] - tracked_roi[3] / 2, tracked_roi[2], tracked_roi[3])
 
     gt = loader.get_gt_bounding_box()
     gt_rectangle.set_bounds(gt[0], gt[1], gt[2], gt[3])
