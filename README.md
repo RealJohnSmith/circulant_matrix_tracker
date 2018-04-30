@@ -1,43 +1,42 @@
-Circulant matrix tracker
-========================
-
-![Tracking example](tracking_example.png "Tracking example")
-
-Python port of 
-> "Exploiting the Circulant Structure of Tracking-by-detection with Kernels"
-> João F. Henriques, Rui Caseiro, Pedro Martins, and Jorge Batista
-> ECCV 2012
-
-Find original matlab code and related publication at
-http://www.isr.uc.pt/~henriques
-
-To use this code:
-
-1. Download and unzip some of the [MILTrack videos](http://vision.ucsd.edu/~bbabenko/project_miltrack.shtml) 
-2. Run `./circulant_matrix_tracker.py -i path_to_folder_with_video_data`
-
-Example: `./circulant_matrix_tracker.py -i /path_to_data/surfer/`
-
-During execution drawing is the slowest part, if you close the drawing window, computation will significantly speed-up;
-a result curve is show when reaching the end of the video.
+# Circulant matrix tracker expanded to other descriptors #
 
 
-Dependencies
-============
+This code combines Circulant Matrix Tracker by João F. Henriques ([Github](https://github.com/rodrigob/circulant_matrix_tracker), [Author's page](http://www.robots.ox.ac.uk/~joao/circulant/))
+and Hardnet image descriptor ([Github](https://github.com/DagnyT/hardnet), [Paper](https://arxiv.org/abs/1705.10872))  
+
+
+## To use this code: ##
+
+1. Get datasets. Comes with loader for [MILTrack](https://bbabenko.github.io/miltrack.html) and [VOT](http://votchallenge.net/vot2016/dataset.html). Alternatively you can write your own loader.
+2. Extract somewhere. Recommended structure is to put data into `./data/sets/*` and create folder `./data/logs/` where output will be generated 
+3. Run `./circulant_matrix_tracker.py -i path_to_dataset`
+
+For more options run `./circulant_matrix_tracker.py -h`
+
+## Descriptors ##
+
+To change image descriptor to be used for tracking use `-d|--descriptor` option. Currently supported descriptors are:
+
+* `raw` | `gray` - Describe image using raw grayscale pixels
+* `hardnet` - Describe image using 128-channel pretrained HardNet++ descriptor 
+
+
+### What is TODO/WIP so far: ###
+
+* *WIP:* GPU computation. If enabled some things get offloaded to gpu, but this parts needs more optimizations work
+* *TODO:* HOG Features descriptor
+* *TODO:* Some metric to automatically measure and evaluate quality of tracking
+* *TODO:* Some metric to automatically measure and evaluate speed of tracking
+* *TODO:* Rewrite everything to c++
+
+
+### Dependencies ###
 
 * Python (used 2.7, might work with other versions too)
 * Numpy
 * Matplotlib
 * Scipy
-
-
-Bug reports
-===========
-
-Feel free to report bugs using github's issue tracker.
-This port seems to work fine, but might still contain bugs.
-
-
-[Rodrigo Benenson](http://rodrigob.github.io), MPI-Inf 2013
+* Torch
+* PyLab
 
 
