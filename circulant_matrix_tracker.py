@@ -195,10 +195,19 @@ def parse_arguments():
 
     parser.add_option("-i", "--input", dest="input_path",
                       metavar="PATH", type="string", default=None,
-                      help="path to a folder o a MILTrack video")
+                      help="path to a folder with dataset")
+    parser.add_option("-o", "--output", dest="output_path",
+                      metavar="PATH", type="string", default=None,
+                      help="path to a folder to which output images should be stored. If none is supplied, default will be created")
+    parser.add_option("--note", dest="note",
+                      type="string", default=None,
+                      help="optional note that will get passed to output data")
     parser.add_option("-g", "--use-gpu", dest="use_gpu",
                       action="store_true",
                       help="try to run on gpu, where applies")
+    parser.add_option("-d", "--descriptor", dest="descriptor",
+                      action="store", type="string", default="raw",
+                      help="Set descriptor to run with")
 
     (options, args) = parser.parse_args()
 
@@ -214,14 +223,32 @@ def main():
     global options
     options = parse_arguments()
 
-    # Based on dataset used...
-    # loader.load_vot(options.input_path)
-    if not loader.load_bbabenko(options.input_path):
-        if not loader.load_vot(options.input_path):
+    if not loader.load_bbabenko(options.input_path, options.output_path):
+        if not loader.load_vot(options.input_path, options.output_path):
             raise Exception("Failed to load the dataset")
 
-    track(hardnet_descriptor)
-    # track(raw_gray_descriptor)
+    descriptor = None
+
+    if options.descriptor.lower() == "raw" or\
+            options.descriptor.lower() == "gray" or\
+            options.descriptor.lower() == "grey":
+        descriptor = raw_gray_descriptor
+    elif options.descriptor.lower() == "hardnet":
+        descriptor = hardnet_descriptor
+    else:
+        raise Exception("Unknown descriptor '{}'".format(options.descriptor))
+
+    results.log_meta("tracker", options.descriptor)
+    results.log_meta("dataset", options.input_path)
+    if options.note is not None:
+        results.log_meta("note", options.note)
+
+    if options.use_gpu:
+        results.log_meta("use_gpu", "true")
+    else:
+        results.log_meta("use_gpu", "false")
+
+    track(descriptor)
 
     print("Done.")
     return

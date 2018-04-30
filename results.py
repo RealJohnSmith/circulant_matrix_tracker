@@ -87,7 +87,7 @@ def log_tracked(image, tracked_roi, cached, template_f, response_f):
     pylab.draw()
 
     if results.initialized:
-        pylab.savefig(loader.get_log_dir() + '/image%05i.jpg' % results.frame_number, bbox_inches='tight')
+        pylab.savefig(loader.get_log_dir() + 'image%05i.jpg' % results.frame_number, bbox_inches='tight')
 
     pylab.waitforbuttonpress(timeout=timeout)
 
@@ -142,3 +142,8 @@ def show_precision():
     #
     # pylab.show()
     # return
+
+
+def log_meta(key, value):
+    with open(loader.get_log_dir() + "meta.txt", "a") as metadata_file:
+        metadata_file.write("{}={}\n".format(key, value))

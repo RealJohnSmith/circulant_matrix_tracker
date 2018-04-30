@@ -59,7 +59,7 @@ def track_bounding_box_from_first_frame():
     return loader.gt_bounding_boxes[0]
 
 
-def load_bbabenko(video_path, rescale=None):
+def load_bbabenko(video_path, output_path, rescale=None):
     if loader.initialized:
         raise Exception("Data set already loaded: {}".format(loader.initialized))
 
@@ -94,8 +94,6 @@ def load_bbabenko(video_path, rescale=None):
         else:
             return False
 
-
-
     else:
         loader.img_paths = glob.glob(os.path.join(video_path, "*.png"))
         if len(loader.img_paths) == 0:
@@ -116,21 +114,14 @@ def load_bbabenko(video_path, rescale=None):
 
     loader.gt_bounding_boxes *= loader.rescale
 
-    loader.log_dir = os.path.join(video_path.replace("data/sets", "data/logs") + datetime.datetime.now().strftime('%G-%b-%d-%H:%M'))
-    if not os.path.exists(loader.log_dir):
-        os.makedirs(loader.log_dir)
-
-    if os.path.exists(loader.log_dir[:loader.log_dir.find("data/logs")+10] + "last"):
-        os.remove(loader.log_dir[:loader.log_dir.find("data/logs")+10] + "last")
-
-    os.symlink(loader.log_dir[loader.log_dir.find("data/logs")+10:], loader.log_dir[:loader.log_dir.find("data/logs")+10] + "last")
+    set_log_dir(video_path, output_path)
 
     loader.initialized = 'BBabenko'
     loader.normalize_image = False
     return True
 
 
-def load_vot(video_path, rescale=None):
+def load_vot(video_path, output_path, rescale=None):
     if loader.initialized:
         raise Exception("Data set already loaded: {}".format(loader.initialized))
 
@@ -171,15 +162,31 @@ def load_vot(video_path, rescale=None):
 
     loader.gt_bounding_boxes *= loader.rescale
 
-    loader.log_dir = os.path.join(video_path.replace("data/sets", "data/logs"), datetime.datetime.now().strftime('%G-%b-%d-%H:%M'))
-    if not os.path.exists(loader.log_dir):
-        os.makedirs(loader.log_dir)
-
-    if os.path.exists(loader.log_dir[:loader.log_dir.find("data/logs")+10] + "last"):
-        os.remove(loader.log_dir[:loader.log_dir.find("data/logs")+10] + "last")
-
-    os.symlink(loader.log_dir[loader.log_dir.find("data/logs")+10:], loader.log_dir[:loader.log_dir.find("data/logs")+10] + "last")
+    set_log_dir(video_path, output_path)
 
     loader.initialized = 'VOT'
     loader.normalize_image = True
     return True
+
+
+def set_log_dir(video_path, output_path):
+    if output_path is not None:
+        loader.log_dir = output_path
+    else:
+        if video_path.find("data/sets"):
+            loader.log_dir = os.path.join(video_path.replace("data/sets", "data/logs"), datetime.datetime.now().strftime('%G-%b-%d-%H:%M'))
+        else:
+            loader.log_dir = os.path.join(video_path, datetime.datetime.now().strftime('%G-%b-%d-%H:%M'))
+    if not os.path.exists(loader.log_dir):
+        os.makedirs(loader.log_dir)
+
+    if loader.log_dir.find("data/logs"):
+        if os.path.exists(loader.log_dir[:loader.log_dir.find("data/logs")+10] + "last"):
+            os.remove(loader.log_dir[:loader.log_dir.find("data/logs")+10] + "last")
+
+        os.symlink(loader.log_dir[loader.log_dir.find("data/logs")+10:], loader.log_dir[:loader.log_dir.find("data/logs")+10] + "last")
+
+    if loader.log_dir.endswith("\\"):
+        loader.log_dir = loader.log_dir[:-1] + "/"
+    elif not loader.log_dir.endswith("/"):
+        loader.log_dir = loader.log_dir + "/"
