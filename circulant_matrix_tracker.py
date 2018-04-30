@@ -149,15 +149,16 @@ def track(descriptor):
 
                 if response[i].item(argmax) != 0:
                     tmp = pylab.unravel_index(argmax, response[i].shape)
-                    avg_x += tmp[0]
-                    avg_y += tmp[1]
+                    avg_x += tmp[1]
+                    avg_y += tmp[0]
                     avg_count += 1
 
+
             if avg_count > 0:
-                movedBy = [avg_y / avg_count - channel.shape[1] / 2,
-                           avg_x / avg_count - channel.shape[0] / 2]
-                roi[0] = movedBy[0] * roi[4] / channel.shape[1] + roi[0]
-                roi[1] = movedBy[1] * roi[5] / channel.shape[0] + roi[1]
+                movedBy = [float(avg_y) / avg_count - float(channel.shape[0]) / 2,
+                           float(avg_x) / avg_count - float(channel.shape[1]) / 2]
+                roi[0] = round(movedBy[1] * roi[4] / channel.shape[1] + roi[0])
+                roi[1] = round(movedBy[0] * roi[5] / channel.shape[0] + roi[1])
 
 
         cropped = get_subwindow(im, roi)
@@ -180,7 +181,7 @@ def track(descriptor):
                 alpha_f[i] = (1 - f) * alpha_f[i] + f * new_alpha_f
                 template[i] = (1 - f) * template[i] + f * new_template
 
-        results.log_tracked(im, roi, avg_count == 0, template[5], response[5])
+        results.log_tracked(im, roi, avg_count == 0, template[0], response[0])
         frame_number += 1
     # end of "for each image in video"
 
