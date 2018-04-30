@@ -9,7 +9,6 @@ class results:
         pass
 
     initialized = False
-    frame_number = 0
     omitted_at_frame_number = None
 
     tracking_figure_axes = None
@@ -63,7 +62,7 @@ def log_tracked(image, tracked_roi, cached, template_f, response_f):
     elif not pylab.fignum_exists(tracking_figure.number):
         print("From now on drawing will be omitted, "
               "so that computation goes faster")
-        results.omitted_at_frame_number = results.frame_number
+        results.omitted_at_frame_number = loader.frame_number()
         results.tracking_figure = None
         return
 
@@ -82,17 +81,16 @@ def log_tracked(image, tracked_roi, cached, template_f, response_f):
 
     tracking_rectangle.set_color((0 if not cached else 1, 0.5 if not cached else 0, 0, 0.7 if not cached else 0.2))
 
-    tracking_figure_title.set_text("Frame {}".format(results.frame_number))
+    tracking_figure_title.set_text("Frame {}".format(loader.frame_number()))
 
     pylab.draw()
 
     if results.initialized:
-        pylab.savefig(loader.get_log_dir() + 'image%05i.jpg' % results.frame_number, bbox_inches='tight')
+        pylab.savefig(loader.get_log_dir() + 'image%05i.jpg' % loader.frame_number(), bbox_inches='tight')
 
     pylab.waitforbuttonpress(timeout=timeout)
 
     results.initialized = True
-    results.frame_number += 1
 
     return
 

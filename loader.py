@@ -19,6 +19,10 @@ class loader:
     normalize_image = True
 
 
+def frame_number():
+    return loader.frame_number
+
+
 def next_frame():
     if not loader.initialized:
         raise Exception("No dataset was loaded")
@@ -37,7 +41,7 @@ def next_frame():
 def has_next_frame():
     if not loader.initialized:
         return False
-    return len(loader.img_paths) > loader.frame_number
+    return len(loader.img_paths) > loader.frame_number + 1
 
 
 def get_gt_bounding_box():

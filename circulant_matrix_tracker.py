@@ -98,15 +98,13 @@ def track(descriptor):
     response = [None for i in range(desc_channel_count)]
     yf = None
 
-    frame_number = 0
-
     while loader.has_next_frame():
-        if (frame_number % 10) == 0:
-            print("Processing frame {}".format(frame_number))
-
         im = loader.next_frame()
 
-        is_first_frame = frame_number == 0
+        if (loader.frame_number() % 10) == 0:
+            print("Processing frame {}".format(loader.frame_number()))
+
+        is_first_frame = loader.frame_number() == 0
 
         cropped = get_subwindow(im, roi)
         channels = descriptor.describe(cropped)
@@ -139,12 +137,11 @@ def track(descriptor):
                     avg_y += tmp[0]
                     avg_count += 1
 
-
             if avg_count > 0:
-                movedBy = [float(avg_y) / avg_count - float(channel.shape[0]) / 2,
+                moved_by = [float(avg_y) / avg_count - float(channel.shape[0]) / 2,
                            float(avg_x) / avg_count - float(channel.shape[1]) / 2]
-                roi[0] = round(movedBy[1] * roi[4] / channel.shape[1] + roi[0])
-                roi[1] = round(movedBy[0] * roi[5] / channel.shape[0] + roi[1])
+                roi[0] = round(moved_by[1] * roi[4] / channel.shape[1] + roi[0])
+                roi[1] = round(moved_by[0] * roi[5] / channel.shape[0] + roi[1])
 
 
         cropped = get_subwindow(im, roi)
@@ -168,7 +165,6 @@ def track(descriptor):
                 template[i] = (1 - f) * template[i] + f * new_template
 
         results.log_tracked(im, roi, avg_count == 0, template[0], response[0])
-        frame_number += 1
     # end of "for each image in video"
 
     results.show_precision()
