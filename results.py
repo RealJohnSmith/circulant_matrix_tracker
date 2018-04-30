@@ -146,4 +146,4 @@ def show_precision():
 
 def log_meta(key, value):
     with open(loader.get_log_dir() + "meta.txt", "a") as metadata_file:
-        metadata_file.write("{}={}\n".format(key, value))
+        metadata_file.write("{}: {}\n".format(key, value))

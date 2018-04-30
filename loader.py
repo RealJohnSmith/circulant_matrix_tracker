@@ -15,7 +15,7 @@ class loader:
     img_paths = None
     gt_bounding_boxes = None
     rescale = 1
-    frame_number = 0
+    frame_number = -1
     normalize_image = True
 
 
@@ -23,13 +23,13 @@ def next_frame():
     if not loader.initialized:
         raise Exception("No dataset was loaded")
 
+    loader.frame_number += 1
+
     im = pylab.imread(loader.img_paths[loader.frame_number])
     if loader.normalize_image:
         im = im / 255.0
     if loader.rescale != 1:
         im = scipy.misc.imresize(im, loader.rescale)
-
-    loader.frame_number += 1
 
     return im
 

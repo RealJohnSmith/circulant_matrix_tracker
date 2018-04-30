@@ -8,9 +8,7 @@ import results
 import pylab
 import loader
 
-import raw_gray_descriptor
-import hardnet_descriptor
-
+from descriptors import raw_gray_descriptor, hardnet_descriptor
 
 
 # parameters according to the paper --
@@ -23,18 +21,6 @@ class kcf_params:
     # linear interpolation factor for adaptation
     interpolation_factor = 0.075
 
-
-
-class CirculantMatrixTracker:
-
-    def __init__(self, object_example):
-        return
-
-    def find(self, image):
-        return
-
-    def update_template(self, new_example, forget_factor=1):
-        return
 
 
 def get_subwindow(image, box):
@@ -228,8 +214,6 @@ def main():
         if not loader.load_vot(options.input_path, options.output_path):
             raise Exception("Failed to load the dataset")
 
-    descriptor = None
-
     if options.descriptor.lower() == "raw" or\
             options.descriptor.lower() == "gray" or\
             options.descriptor.lower() == "grey":
@@ -239,7 +223,7 @@ def main():
     else:
         raise Exception("Unknown descriptor '{}'".format(options.descriptor))
 
-    results.log_meta("tracker", options.descriptor)
+    results.log_meta("descriptor", descriptor.get_name())
     results.log_meta("dataset", options.input_path)
     if options.note is not None:
         results.log_meta("note", options.note)
