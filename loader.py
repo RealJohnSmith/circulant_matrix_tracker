@@ -59,6 +59,12 @@ def track_bounding_box_from_first_frame():
     return loader.gt_bounding_boxes[0]
 
 
+def load (video_path, output_path):
+    if not load_bbabenko(video_path, output_path):
+        if not load_vot(video_path, output_path):
+            raise Exception("Failed to load the dataset")
+
+
 def load_bbabenko(video_path, output_path, rescale=None):
     if loader.initialized:
         raise Exception("Data set already loaded: {}".format(loader.initialized))

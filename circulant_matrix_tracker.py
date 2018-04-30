@@ -210,9 +210,7 @@ def main():
     global options
     options = parse_arguments()
 
-    if not loader.load_bbabenko(options.input_path, options.output_path):
-        if not loader.load_vot(options.input_path, options.output_path):
-            raise Exception("Failed to load the dataset")
+    loader.load(options.input_path, options.output_path)
 
     if options.descriptor.lower() == "raw" or\
             options.descriptor.lower() == "gray" or\

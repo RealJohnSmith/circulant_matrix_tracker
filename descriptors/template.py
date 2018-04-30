@@ -7,6 +7,7 @@ class Descriptor:
     def initialize(self, usegpu):
         """
         This method will be called at the start. Descriptor can do some initializing stuff
+        usegpu = True means that gpu computation is allowed and should be attempted, if possible
         :return: number of channels that this descriptor outputs
         """
 
@@ -15,7 +16,7 @@ class Descriptor:
     def describe(self, image):
         """
         Do the descriptor thing. Image is 3D matrix - first 2 dimensions correspond to pixels of image patch
-        last one represents multiple color channel per pixel. R, G, B. In this order
+        last one represents multiple color channel per pixel. R, G, B. In this order, scaled to 0-1 range
         :return: 3D matrix. First dimension should correspond to channels, the next two to 2D image.
                     Can be different size then input image
         """
