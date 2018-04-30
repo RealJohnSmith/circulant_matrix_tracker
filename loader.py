@@ -179,20 +179,28 @@ def set_log_dir(video_path, output_path):
     if output_path is not None:
         loader.log_dir = output_path
     else:
-        if video_path.find("data/sets"):
-            loader.log_dir = os.path.join(video_path.replace("data/sets", "data/logs"), datetime.datetime.now().strftime('%G-%b-%d-%H:%M'))
+        if video_path.find("data/sets/") != -1:
+            loader.log_dir = os.path.join(video_path.replace("data/sets/", "data/logs/"), datetime.datetime.now().strftime('%G-%b-%d-%H:%M'))
         else:
             loader.log_dir = os.path.join(video_path, datetime.datetime.now().strftime('%G-%b-%d-%H:%M'))
-    if not os.path.exists(loader.log_dir):
-        os.makedirs(loader.log_dir)
-
-    if loader.log_dir.find("data/logs"):
-        if os.path.exists(loader.log_dir[:loader.log_dir.find("data/logs")+10] + "last"):
-            os.remove(loader.log_dir[:loader.log_dir.find("data/logs")+10] + "last")
-
-        os.symlink(loader.log_dir[loader.log_dir.find("data/logs")+10:], loader.log_dir[:loader.log_dir.find("data/logs")+10] + "last")
 
     if loader.log_dir.endswith("\\"):
         loader.log_dir = loader.log_dir[:-1] + "/"
     elif not loader.log_dir.endswith("/"):
         loader.log_dir = loader.log_dir + "/"
+
+    if not os.path.exists(loader.log_dir):
+        os.makedirs(loader.log_dir)
+    else:
+        set_log_dir(video_path, loader.log_dir[:-1] + "_next")
+        return
+
+    if loader.log_dir.find("data/logs/") != -1:
+        try:
+            if os.path.exists(loader.log_dir[:loader.log_dir.find("data/logs/")+10] + "last"):
+                os.remove(loader.log_dir[:loader.log_dir.find("data/logs/")+10] + "last")
+
+            os.symlink(loader.log_dir[loader.log_dir.find("data/logs/")+10:], loader.log_dir[:loader.log_dir.find("data/logs/")+10] + "last")
+        except OSError:
+            print("[WARN] Failed to create symlink '{} -> {}'".format(loader.log_dir[:loader.log_dir.find("data/logs/")+10] + "last", loader.log_dir[loader.log_dir.find("data/logs/")+10:]))
+
