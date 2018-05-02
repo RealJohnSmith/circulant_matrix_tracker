@@ -26,7 +26,6 @@ To change image descriptor to be used for tracking use `-d|--descriptor` option.
 * *WIP:* GPU computation. If enabled some things get offloaded to gpu, but this parts needs more optimizations work
 * *TODO:* HOG Features descriptor
 * *TODO:* Some metric to automatically measure and evaluate quality of tracking
-* *TODO:* Some metric to automatically measure and evaluate speed of tracking
 * *TODO:* Rewrite everything to c++
 
 

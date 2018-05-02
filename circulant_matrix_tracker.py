@@ -7,6 +7,7 @@ from optparse import OptionParser
 import results
 import pylab
 import loader
+import time
 
 from descriptors import raw_gray_descriptor, hardnet_descriptor
 
@@ -80,6 +81,7 @@ def dense_gauss_kernel(sigma, x, y=None):
 
 
 def track(descriptor):
+
     global options
     desc_channel_count = descriptor.initialize(options.use_gpu)
 
@@ -98,11 +100,15 @@ def track(descriptor):
     response = [None for i in range(desc_channel_count)]
     yf = None
 
+    track_time = 0
+    full_track_time = time.time()
     while loader.has_next_frame():
         im = loader.next_frame()
 
         if (loader.frame_number() % 10) == 0:
             print("Processing frame {}".format(loader.frame_number()))
+
+        start_time = time.time()
 
         is_first_frame = loader.frame_number() == 0
 
@@ -143,7 +149,6 @@ def track(descriptor):
                 roi[0] = round(moved_by[1] * roi[4] / channel.shape[1] + roi[0])
                 roi[1] = round(moved_by[0] * roi[5] / channel.shape[0] + roi[1])
 
-
         cropped = get_subwindow(im, roi)
         channels = descriptor.describe(cropped)
         subwindow = apply_cos_window(channels)
@@ -164,8 +169,15 @@ def track(descriptor):
                 alpha_f[i] = (1 - f) * alpha_f[i] + f * new_alpha_f
                 template[i] = (1 - f) * template[i] + f * new_template
 
+        track_time += time.time() - start_time
+
         results.log_tracked(im, roi, avg_count == 0, template[0], response[0])
     # end of "for each image in video"
+
+    results.log_meta("frames_tracked", loader.frame_number())
+    results.log_meta("track_no_io_time", str(track_time) + "s")
+    results.log_meta("track_no_io_fps", loader.frame_number() / track_time)
+    results.log_meta("track_no_init_time", str(time.time() - full_track_time) + "s")
 
     results.show_precision()
 
@@ -204,6 +216,7 @@ def parse_arguments():
 
 def main():
     global options
+    run_time = time.time()
     options = parse_arguments()
 
     loader.load(options.input_path, options.output_path)
@@ -229,7 +242,12 @@ def main():
 
     track(descriptor)
 
-    print("Done.")
+    run_time -= time.time()
+    run_time *= -1
+
+    results.log_meta("total_run_time", str(run_time) + "s")
+
+    print("Finished in {}s".format(run_time))
     return
 
 
