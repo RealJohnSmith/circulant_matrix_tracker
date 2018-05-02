@@ -16,7 +16,7 @@ class hardnet:
     usegpu = False
     model = None
     upscale = False
-    model_path = 'descriptors/pretrained/hardnetBr6.pth'
+    model_path = 'descriptors/pretrained/all_datasets_HardNet++.pth'
 
 
 def initialize(usegpu):
@@ -59,32 +59,31 @@ def get_name():
 class L2Norm(nn.Module):
     def __init__(self):
         super(L2Norm,self).__init__()
-        hardnet.eps = 1e-10
+        self.eps = 1e-10
     def forward(self, x):
-        norm = torch.sqrt(torch.sum(x * x, dim = 1, keepdim = True) + hardnet.eps)
+        norm = torch.sqrt(torch.sum(x * x, dim = 1, keepdim = True) + self.eps)
         x= x / norm.expand_as(x)
         return x
-
 
 class LocalNorm2d(nn.Module):
     def __init__(self, kernel_size = 32):
         super(LocalNorm2d, self).__init__()
-        hardnet.ks = kernel_size
-        hardnet.pool = nn.AvgPool2d(kernel_size = hardnet.ks, stride = 1,  padding = 0)
-        hardnet.eps = 1e-10
+        self.ks = kernel_size
+        self.pool = nn.AvgPool2d(kernel_size = self.ks, stride = 1,  padding = 0)
+        self.eps = 1e-10
         return
     def forward(self,x):
-        pd = int(hardnet.ks/2)
-        mean = hardnet.pool(F.pad(x, (pd,pd,pd,pd), 'reflect'))
-        return torch.clamp((x - mean) / (torch.sqrt(torch.abs(hardnet.pool(F.pad(x*x,  (pd,pd,pd,pd), 'reflect')) - mean*mean )) + hardnet.eps), min = -6.0, max = 6.0)
-
+        pd = int(self.ks/2)
+        mean = self.pool(F.pad(x, (pd,pd,pd,pd), 'reflect'))
+        return torch.clamp((x - mean) / (torch.sqrt(torch.abs(self.pool(F.pad(x*x,  (pd,pd,pd,pd), 'reflect')) - mean*mean )) + self.eps), min = -6.0, max = 6.0)
 
 class DenseHardNet(nn.Module):
-    """HardNet model definition"""
+    """HardNet model definition
+    """
     def __init__(self, _stride = 2):
         super(DenseHardNet, self).__init__()
-        hardnet.input_norm = LocalNorm2d(17)
-        hardnet.features = nn.Sequential(
+        self.input_norm = LocalNorm2d(17)
+        self.features = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, padding=1, bias = False),
             nn.BatchNorm2d(32, affine=False),
             nn.ReLU(),
@@ -112,10 +111,9 @@ class DenseHardNet(nn.Module):
 
     def forward(self, input, upscale = False):
         if input.size(1) > 1:
-            feats = hardnet.features(hardnet.input_norm(input.mean(dim = 1, keepdim = True)))
+            feats = self.features(self.input_norm(input.mean(dim = 1, keepdim = True)))
         else:
-            feats = hardnet.features(hardnet.input_norm(input))
+            feats = self.features(self.input_norm(input))
         if upscale:
             return F.upsample(feats, (input.size(2), input.size(3)),mode='bilinear')
         return feats
-
