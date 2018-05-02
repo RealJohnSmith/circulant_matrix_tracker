@@ -174,10 +174,10 @@ def track(descriptor):
         results.log_tracked(im, roi, avg_count == 0, template[0], response[0])
     # end of "for each image in video"
 
-    results.log_meta("frames_tracked", loader.frame_number())
-    results.log_meta("track_no_io_time", str(track_time) + "s")
-    results.log_meta("track_no_io_fps", loader.frame_number() / track_time)
-    results.log_meta("track_no_init_time", str(time.time() - full_track_time) + "s")
+    results.log_meta("speed.frames_tracked", loader.frame_number())
+    results.log_meta("speed.track_no_io_time", str(track_time) + "s")
+    results.log_meta("speed.track_no_io_fps", loader.frame_number() / track_time)
+    results.log_meta("speed.track_no_init_time", str(time.time() - full_track_time) + "s")
 
     results.show_precision()
 
@@ -240,12 +240,18 @@ def main():
     else:
         results.log_meta("use_gpu", "false")
 
+    results.log_meta("tracker.padding", kcf_params.padding)
+    results.log_meta("tracker.interpolation_factor", kcf_params.interpolation_factor)
+    results.log_meta("tracker.lambda", kcf_params.lambda_value)
+    results.log_meta("tracker.sigma", kcf_params.sigma)
+    results.log_meta("tracker.output_sigma_factor", kcf_params.output_sigma_factor)
+
     track(descriptor)
 
     run_time -= time.time()
     run_time *= -1
 
-    results.log_meta("total_run_time", str(run_time) + "s")
+    results.log_meta("speed.total_run_time", str(run_time) + "s")
 
     print("Finished in {}s".format(run_time))
     return

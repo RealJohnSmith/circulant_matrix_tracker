@@ -16,7 +16,8 @@ class hardnet:
     usegpu = False
     model = None
     upscale = False
-    model_path = "descriptors/pretrained/all_datasets_HardNet++.pth"
+    model_path = 'descriptors/pretrained/hardnetBr6.pth'
+
 
 def initialize(usegpu):
     hardnet.usegpu = usegpu
@@ -37,14 +38,14 @@ def initialize(usegpu):
     results.log_meta("descriptor[ {} ].upscale".format(get_name()), hardnet.upscale)
     results.log_meta("descriptor[ {} ].model_path".format(get_name()), hardnet.model_path)
 
-
     return 128
+
 
 def describe(image):
     gray = rgb2gray(image)
     var_image = torch.autograd.Variable(torch.from_numpy(gray.astype(np.float32)), volatile=True)
     var_image_reshape = var_image.view(1, 1, gray.shape[0], gray.shape[1])
-    if (hardnet.usegpu):
+    if hardnet.usegpu:
         var_image_reshape = var_image_reshape.cuda()
 
     desc = hardnet.model(var_image_reshape, hardnet.upscale).data.cpu().numpy()
@@ -55,7 +56,6 @@ def get_name():
     return "Hardnet"
 
 
-
 class L2Norm(nn.Module):
     def __init__(self):
         super(L2Norm,self).__init__()
@@ -64,6 +64,7 @@ class L2Norm(nn.Module):
         norm = torch.sqrt(torch.sum(x * x, dim = 1, keepdim = True) + hardnet.eps)
         x= x / norm.expand_as(x)
         return x
+
 
 class LocalNorm2d(nn.Module):
     def __init__(self, kernel_size = 32):
@@ -77,9 +78,9 @@ class LocalNorm2d(nn.Module):
         mean = hardnet.pool(F.pad(x, (pd,pd,pd,pd), 'reflect'))
         return torch.clamp((x - mean) / (torch.sqrt(torch.abs(hardnet.pool(F.pad(x*x,  (pd,pd,pd,pd), 'reflect')) - mean*mean )) + hardnet.eps), min = -6.0, max = 6.0)
 
+
 class DenseHardNet(nn.Module):
-    """HardNet model definition
-    """
+    """HardNet model definition"""
     def __init__(self, _stride = 2):
         super(DenseHardNet, self).__init__()
         hardnet.input_norm = LocalNorm2d(17)
