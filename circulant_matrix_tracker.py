@@ -8,8 +8,10 @@ import results
 import pylab
 import loader
 import time
+import torch
+import numpy as np
 
-from descriptors import raw_gray_descriptor, hardnet_descriptor
+from descriptors import raw_gray_descriptor, hardnet_descriptor, hog_descriptor
 
 
 # parameters according to the paper --
@@ -21,7 +23,6 @@ class kcf_params:
     lambda_value = 1e-2  # regularization
     # linear interpolation factor for adaptation
     interpolation_factor = 0.075
-
 
 
 def get_subwindow(image, box):
@@ -80,18 +81,38 @@ def dense_gauss_kernel(sigma, x, y=None):
     return k
 
 
-def track(descriptor):
+def crop(channels):
+    halfExtend = 5
+    halfW = channels.shape[1] / 2
+    halfH = channels.shape[2] / 2
 
+    return channels
+    # return channels[:, halfW - halfExtend:halfW + halfExtend, halfH - halfExtend:halfH + halfExtend]
+    # return channels[:, 14:-14, 14:-14]
+
+
+def distance_matrix_vector(anchor, positive):
+    """Given batch of anchor descriptors and positive descriptors calculate distance matrix"""
+
+    d1_sq = torch.sum(anchor * anchor, dim=1).unsqueeze(-1)
+    d2_sq = torch.sum(positive * positive, dim=1).unsqueeze(-1)
+
+    eps = 1e-6
+    return torch.sqrt((d1_sq.repeat(1, positive.size(0)) + torch.t(d2_sq.repeat(1, anchor.size(0)))
+                       - 2.0 * torch.bmm(anchor.unsqueeze(0), torch.t(positive).unsqueeze(0)).squeeze(0)) + eps)
+
+
+def track(descriptor):
     global options
     desc_channel_count = descriptor.initialize(options.use_gpu)
 
     roi = loader.track_bounding_box_from_first_frame()
-    roi = [roi[0] + roi[2] / 2, roi[1] + roi[3] / 2, roi[2], roi[3], roi[2] * (1 + kcf_params.padding), roi[3] * (1 + kcf_params.padding)]
+    roi = [roi[0] + roi[2] / 2, roi[1] + roi[3] / 2, roi[2], roi[3], roi[2] * (1 + kcf_params.padding),
+           roi[3] * (1 + kcf_params.padding)]
 
     output_sigma = pylab.sqrt(pylab.prod([roi[3], roi[2]])) * kcf_params.output_sigma_factor
 
     avg_count = 0
-
 
     global cos_window
     cos_window = None
@@ -115,6 +136,8 @@ def track(descriptor):
         cropped = get_subwindow(im, roi)
         channels = descriptor.describe(cropped)
         subwindow = apply_cos_window(channels)
+        subwindow = crop(subwindow)
+        dmv = None
 
         if is_first_frame:
             grid_y = pylab.arange(subwindow.shape[1]) - pylab.floor(subwindow.shape[1] / 2)
@@ -124,7 +147,6 @@ def track(descriptor):
             y = pylab.exp(-0.5 / output_sigma ** 2 * (rs ** 2 + cs ** 2))
             yf = pylab.fft2(y)
         else:
-            avg_count, avg_x, avg_y = 0, 0, 0
 
             for i in range(0, subwindow.shape[0]):
                 channel = subwindow[i, :, :]
@@ -135,23 +157,32 @@ def track(descriptor):
                 alphaf_kf = pylab.multiply(alpha_f[i], kf)
                 response[i] = pylab.real(pylab.ifft2(alphaf_kf))  # Eq. 9
 
-                argmax = response[i].argmax()
+                # argmax = response[i].argmax()
+                #
+                # if response[i].item(argmax) != 0:
+                #     tmp = pylab.unravel_index(argmax, response[i].shape)
+                #     if value < response[i][tmp[0],tmp[1]]:
+                #         avg_x = tmp[1]
+                #         avg_y = tmp[0]
+                #         avg_count = 1
+                #         value = response[i][tmp[0],tmp[1]]
+                #         chosen_i = i
 
-                if response[i].item(argmax) != 0:
-                    tmp = pylab.unravel_index(argmax, response[i].shape)
-                    avg_x += tmp[1]
-                    avg_y += tmp[0]
-                    avg_count += 1
+            anchor = torch.tensor(channels[:, channels.shape[1] / 2, channels.shape[2] / 2]).unsqueeze(0)
+            points = torch.tensor(response).view(channels.shape[0], -1).t()
 
-            if avg_count > 0:
-                moved_by = [float(avg_y) / avg_count - float(channel.shape[0]) / 2,
-                           float(avg_x) / avg_count - float(channel.shape[1]) / 2]
-                roi[0] = round(moved_by[1] * roi[4] / channel.shape[1] + roi[0])
-                roi[1] = round(moved_by[0] * roi[5] / channel.shape[0] + roi[1])
+            dmv = distance_matrix_vector(anchor, points).view(channels.shape[1], channels.shape[2])
+
+            argmax = np.array(dmv).argmax()
+            tmp = pylab.unravel_index(argmax, subwindow.shape[1:])
+            moved_by = [float(tmp[0]) - float(subwindow.shape[1]) / 2,
+                        float(tmp[1]) - float(subwindow.shape[2]) / 2]
+            roi = descriptor.update_roi(roi, moved_by)
 
         cropped = get_subwindow(im, roi)
         channels = descriptor.describe(cropped)
         subwindow = apply_cos_window(channels)
+        subwindow = crop(subwindow)
 
         for i in range(0, subwindow.shape[0]):
 
@@ -171,7 +202,7 @@ def track(descriptor):
 
         track_time += time.time() - start_time
 
-        results.log_tracked(im, roi, avg_count == 0, template[0], response[0])
+        results.log_tracked(im, roi, False, template[0], dmv)
     # end of "for each image in video"
 
     results.log_meta("speed.frames_tracked", loader.frame_number())
@@ -221,12 +252,14 @@ def main():
 
     loader.load(options.input_path, options.output_path)
 
-    if options.descriptor.lower() == "raw" or\
-            options.descriptor.lower() == "gray" or\
+    if options.descriptor.lower() == "raw" or \
+            options.descriptor.lower() == "gray" or \
             options.descriptor.lower() == "grey":
         descriptor = raw_gray_descriptor
     elif options.descriptor.lower() == "hardnet":
         descriptor = hardnet_descriptor
+    elif options.descriptor.lower() == "hog":
+        descriptor = hog_descriptor
     else:
         raise Exception("Unknown descriptor '{}'".format(options.descriptor))
 

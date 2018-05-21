@@ -47,7 +47,8 @@ def has_next_frame():
 def get_gt_bounding_box():
     if not loader.initialized:
         raise Exception("No dataset was loaded")
-    return loader.gt_bounding_boxes[loader.frame_number]
+    gt = loader.gt_bounding_boxes[loader.frame_number]
+    return gt
 
 
 def get_log_dir():
@@ -60,10 +61,11 @@ def get_log_dir():
 def track_bounding_box_from_first_frame():
     if not loader.initialized:
         raise Exception("No dataset was loaded")
-    return loader.gt_bounding_boxes[0]
+    gt = loader.gt_bounding_boxes[0]
+    return gt
 
 
-def load (video_path, output_path):
+def load(video_path, output_path):
     if not load_bbabenko(video_path, output_path):
         if not load_vot(video_path, output_path):
             raise Exception("Failed to load the dataset")

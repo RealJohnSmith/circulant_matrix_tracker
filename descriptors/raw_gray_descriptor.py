@@ -14,5 +14,11 @@ def initialize(usegpu):
 def describe(image):
     return rgb2gray(image).reshape([1, image.shape[0], image.shape[1]])
 
+def update_roi(old_roi, moved_by):
+    roi = old_roi
+    roi[0] = round(moved_by[1]) + roi[0]
+    roi[1] = round(moved_by[0]) + roi[1]
+    return roi
+
 def get_name():
     return "RawGray"

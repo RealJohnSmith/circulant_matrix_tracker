@@ -16,16 +16,16 @@ class hardnet:
     usegpu = False
     model = None
     upscale = False
+    stride = 2
     model_path = 'descriptors/pretrained/all_datasets_HardNet++.pth'
 
 
 def initialize(usegpu):
     hardnet.usegpu = usegpu
 
-    stride = 2
     hardnet.upscale = False
 
-    model = DenseHardNet(stride)
+    model = DenseHardNet(hardnet.stride)
     checkpoint = torch.load(hardnet.model_path)
     model.load_state_dict(checkpoint['state_dict'])
     model.eval()
@@ -34,7 +34,7 @@ def initialize(usegpu):
     else:
         hardnet.model = model.cpu()
 
-    results.log_meta("descriptor[ {} ].stride".format(get_name()), stride)
+    results.log_meta("descriptor[ {} ].stride".format(get_name()), hardnet.stride)
     results.log_meta("descriptor[ {} ].upscale".format(get_name()), hardnet.upscale)
     results.log_meta("descriptor[ {} ].model_path".format(get_name()), hardnet.model_path)
 
@@ -54,6 +54,13 @@ def describe(image):
 
 def get_name():
     return "Hardnet"
+
+
+def update_roi(old_roi, moved_by):
+    roi = old_roi
+    roi[0] = round(moved_by[1] * hardnet.stride) + roi[0]
+    roi[1] = round(moved_by[0] * hardnet.stride) + roi[1]
+    return roi
 
 
 class L2Norm(nn.Module):
@@ -82,7 +89,7 @@ class DenseHardNet(nn.Module):
     """
     def __init__(self, _stride = 2):
         super(DenseHardNet, self).__init__()
-        self.input_norm = LocalNorm2d(17)
+        #self.input_norm = nn.InstanceNorm2d(1,affine = False)#(77)
         self.features = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, padding=1, bias = False),
             nn.BatchNorm2d(32, affine=False),
@@ -99,21 +106,20 @@ class DenseHardNet(nn.Module):
             nn.Conv2d(64, 128, kernel_size=3, stride=_stride,padding=1, bias = False),
             nn.BatchNorm2d(128, affine=False),
             nn.ReLU(),
-            nn.Conv2d(128, 128, kernel_size=3, padding=1, bias = False),
+            nn.Conv2d(128, 128, kernel_size=3, padding=1, stride=1, bias = False),
             nn.BatchNorm2d(128, affine=False),
             nn.ReLU(),
             nn.Dropout(0.1),
-            nn.Conv2d(128, 128, kernel_size=8, bias = False),
+            nn.Conv2d(128, 128, kernel_size=8, stride = 1, bias = False),
             nn.BatchNorm2d(128, affine=False),
             L2Norm()
         )
         return
 
-    def forward(self, input, upscale = False):
+    def forward(self, input, upscale = True):
         if input.size(1) > 1:
-            feats = self.features(self.input_norm(input.mean(dim = 1, keepdim = True)))
+            feats = self.features(input)
         else:
-            feats = self.features(self.input_norm(input))
-        if upscale:
-            return F.upsample(feats, (input.size(2), input.size(3)),mode='bilinear')
-        return feats
+            feats = self.features(input.mean(dim = 1, keepdim = True))
+        return F.upsample(feats, (input.size(2),
+                                  input.size(3)),mode='bilinear')
